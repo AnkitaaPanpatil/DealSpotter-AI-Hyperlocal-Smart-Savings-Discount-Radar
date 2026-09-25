@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DealSpotter AI — Hyperlocal Smart Savings & Discount Radar</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dealEmerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                            950: '#022c22'
+                        },
+                        flashAmber: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            950: '#451a03'
+                        },
+                        discountCoral: {
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            950: '#4c0519'
+                        },
+                        cyberViolet: {
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            950: '#2e1065'
+                        },
+                        slateVelvet: {
+                            800: '#172033',
+                            850: '#111827',
+                            900: '#0b1120',
+                            950: '#050914'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <!-- Leaflet.js Mapping Library -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050914;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        .glass-card {
+            background: rgba(11, 17, 32, 0.82);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: #0b1120;
+            color: #f8fafc;
+            border: 1px solid #1e293b;
+            border-radius: 0.85rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7);
+        }
+        .leaflet-popup-tip {
+            background: #0b1120;
+        }
+
+        .flash-pulse {
+            animation: pulse-ring 2.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+        }
+        @keyframes pulse-ring {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.55; transform: scale(1.08); }
+        }
+
+        .shimmer-text {
+            background: linear-gradient(90deg, #10b981 0%, #f59e0b 50%, #10b981 100%);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shine 3s linear infinite;
+        }
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+    </style>
+</head>
+<body class="bg-slateVelvet-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-dealEmerald-500 selection:text-slate-950">
+
+    <header class="border-b border-slate-800/80 bg-slateVelvet-900/90 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Brand Logo & Geolocation Beacon -->
+            <div class="flex items-center gap-3.5 cursor-pointer" onclick="switchTab('map')">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-dealEmerald-600 via-flashAmber-500 to-cyberViolet-500 flex items-center justify-center text-slate-950 text-xl font-black shadow-lg shadow-dealEmerald-500/20">
+                    <i class="fa-solid fa-tags"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-white flex items-center gap-2">
+                        DealSpotter AI
+                        <span class="text-[10px] font-mono font-bold bg-dealEmerald-500/15 text-dealEmerald-400 px-2 py-0.5 rounded-full border border-dealEmerald-500/30 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-dealEmerald-400 animate-pulse"></span> Hyperlocal Radar Active
+                        </span>
+                    </h1>
+                    <p class="text-xs text-slate-400">AI-Curated Urban Discounts, Flash Steals & True-Bargain Verification</p>
+                </div>
+            </div>
+
+            <!-- Active Sector & Wallet Telemetry Badge -->
+            <div class="flex items-center gap-3 bg-slateVelvet-850 border border-slate-800 rounded-xl px-3.5 py-1.5 text-xs font-mono">
+                <div class="w-2.5 h-2.5 rounded-full bg-dealEmerald-400 animate-ping"></div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-wider">Active Shopping District</span>
+                    <span class="font-bold text-slate-200" id="headerLocationLabel">Downtown Promenade (1.5 km Radius)</span>
+                </div>
+                <div class="border-l border-slate-700 pl-3 flex items-center gap-1.5">
+                    <span class="text-slate-400 text-[11px]">Wallet Saved:</span>
+                    <span class="px-2 py-0.5 rounded bg-dealEmerald-950 text-dealEmerald-300 font-bold border border-dealEmerald-800" id="headerTotalSaved">$342.50</span>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions -->
+            <div class="flex items-center gap-2.5">
+                <button onclick="triggerFlashDropSimulation()" class="px-3.5 py-2 bg-gradient-to-r from-discountCoral-600 to-flashAmber-500 hover:from-discountCoral-500 hover:to-flashAmber-400 text-white font-bold rounded-xl text-xs shadow-md transition flex items-center gap-2" title="Simulate a 50% flash discount drop at a nearby merchant">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Simulate Flash Drop</span>
+                </button>
+                <button onclick="openSpotDealModal()" class="px-3.5 py-2 bg-slateVelvet-800 hover:bg-slate-800 text-dealEmerald-300 border border-dealEmerald-500/30 font-semibold rounded-xl text-xs transition flex items-center gap-1.5 shadow">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Spot & Post Deal</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 lg:p-6 space-y-6">
+
+        <!-- Top Telemetry Metrics -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+            <div class="glass-card p-4 rounded-2xl flex flex-col justify-between hover:border-dealEmerald-500/40 transition">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>Nearby Active Deals</span>
+                    <i class="fa-solid fa-bullseye text-dealEmerald-400"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold font-mono text-slate-100" id="statActiveDealsCount">38 Live</span>
+                    <span class="text-xs text-dealEmerald-400 font-semibold flex items-center gap-1 font-mono">
+                        <i class="fa-solid fa-circle-check"></i> 100% Verified
+                    </span>
+                </div>
+                <span class="text-[11px] text-slate-400 mt-1">Within 3.0 km search boundary</span>
+            </div>
+
+            <div class="glass-card p-4 rounded-2xl flex flex-col justify-between hover:border-flashAmber-400/40 transition">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>Average Markdown</span>
+                    <i class="fa-solid fa-percent text-flashAmber-400"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold font-mono text-slate-100" id="statAvgDiscount">44.8% Off</span>
+                    <span class="text-xs text-flashAmber-400 font-mono">Today's Peak</span>
+                </div>
+                <span class="text-[11px] text-flashAmber-400 font-semibold">Max discount: 70% Clearance</span>
+            </div>
+
+            <div class="glass-card p-4 rounded-2xl flex flex-col justify-between hover:border-discountCoral-400/40 transition">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>Expiring Flash Steals</span>
+                    <i class="fa-solid fa-stopwatch text-discountCoral-400"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold font-mono text-slate-100" id="statExpiringCount">7 Steals</span>
+                    <span class="text-xs text-discountCoral-400 font-semibold">&lt; 90 mins</span>
+                </div>
+                <span class="text-[11px] text-slate-400">Happy hour bakery & bistro drops</span>
+            </div>
+
+            <div class="glass-card p-4 rounded-2xl flex flex-col justify-between hover:border-cyberViolet-400/40 transition">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>Community Net Savings</span>
+                    <i class="fa-solid fa-piggy-bank text-cyberViolet-400"></i>
+                </div>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold font-mono text-slate-100" id="statCommunitySaved">$9,840</span>
+                    <span class="text-xs text-cyberViolet-400 font-mono">This Week</span>
+                </div>
+                <span class="text-[11px] text-cyberViolet-400 font-semibold">1,480 neighborhood redemptions</span>
+            </div>
+        </section>
+
+        <section class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div class="inline-flex rounded-xl bg-slateVelvet-900 p-1 border border-slate-800 text-xs font-semibold" role="tablist">
+                <button onclick="switchTab('map')" id="tabBtnMap" class="px-3.5 py-2 rounded-lg bg-dealEmerald-600 text-slate-950 font-bold transition flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <span>Hyperlocal Deal Radar</span>
+                </button>
+                <button onclick="switchTab('feed')" id="tabBtnFeed" class="px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-tag"></i>
+                    <span>Curated Deals & Steals</span>
+                </button>
+                <button onclick="switchTab('watchdog')" id="tabBtnWatchdog" class="px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Price Drop Watchdog</span>
+                </button>
+                <button onclick="switchTab('wallet')" id="tabBtnWallet" class="px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span>Coupon Wallet (<span id="walletTabCount">2</span>)</span>
+                </button>
+                <button onclick="switchTab('concierge')" id="tabBtnConcierge" class="px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-brain"></i>
+                    <span>AI Bargain Hunter</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2 text-xs font-mono text-slate-400">
+                <span class="w-2 h-2 rounded-full bg-dealEmerald-400 animate-ping"></span>
+                <span>Hyperlocal GPS Synced (Accuracy 12m)</span>
+            </div>
+        </section>
+
+        <section id="tabContentMap" class="space-y-5">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                
+                <!-- Left 8 Cols: Interactive Leaflet Hyperlocal Map -->
+                <div class="lg:col-span-8 glass-card p-4 rounded-2xl flex flex-col justify-between space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-2.5">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-radar text-dealEmerald-400"></i>
+                                Live Hyperlocal Proximity Radar
+                            </h3>
+                            <p class="text-xs text-slate-400">Real-time geofenced discounts across dining, supermarkets, boutiques, and tech stores.</p>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs font-mono">
+                            <span class="flex items-center gap-1 text-dealEmerald-400"><span class="w-2.5 h-2.5 rounded-full bg-dealEmerald-400"></span> Standard (&gt;20%)</span>
+                            <span class="flex items-center gap-1 text-flashAmber-400"><span class="w-2.5 h-2.5 rounded-full bg-flashAmber-400"></span> Mega (40-59%)</span>
+                            <span class="flex items-center gap-1 text-discountCoral-400"><span class="w-2.5 h-2.5 rounded-full bg-discountCoral-400"></span> Flash (&ge;60%)</span>
+                        </div>
+                    </div>
+
+                    <!-- Map Canvas Container -->
+                    <div class="relative w-full h-[430px] rounded-xl overflow-hidden border border-slate-800">
+                        <div id="dealLeafletMap" class="w-full h-full z-0"></div>
+                        <div class="absolute bottom-3 left-3 z-[400] bg-slateVelvet-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-mono flex items-center gap-2">
+                            <i class="fa-solid fa-location-crosshairs text-dealEmerald-400"></i>
+                            <span id="mapCoordsLabel">Downtown Market Promenade (40.7128° N, 74.0060° W)</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between text-xs text-slate-400 font-mono pt-1">
+                        <span>Search Radius: <strong class="text-slate-200">1.5 Kilometers</strong></span>
+                        <span>Crowdsourced Accuracy: <strong class="text-dealEmerald-400">98.2% Verified</strong></span>
+                        <button onclick="refreshRadarTelemetry()" class="text-dealEmerald-400 hover:text-dealEmerald-300 transition flex items-center gap-1">
+                            <i class="fa-solid fa-arrows-rotate"></i> Ping Radar Sensors
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right 4 Cols: Merchant Spot Inspector & Proximity Filter -->
+                <div class="lg:col-span-4 glass-card p-4 rounded-2xl flex flex-col justify-between space-y-3 border-t-2 border-t-dealEmerald-500">
+                    <div class="border-b border-slate-800 pb-2">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Nearby Deals Directory</h4>
+                            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-dealEmerald-950 text-dealEmerald-300 border border-dealEmerald-800">
+                                Ranked by Proximity
+                            </span>
+                        </div>
+                        
+                        <!-- Search & Category Filters -->
+                        <div class="mt-3 space-y-2">
+                            <div class="relative">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+                                <input type="text" id="dealSearchInput" oninput="filterDealsList()" placeholder="Search bakery, sushi, electronics, organic..." class="w-full bg-slateVelvet-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-dealEmerald-500">
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                                <span>Max Distance:</span>
+                                <select id="distanceFilterSelect" onchange="filterDealsList()" class="bg-slateVelvet-900 border border-slate-700 rounded-lg px-2 py-0.5 text-slate-200 text-xs">
+                                    <option value="1">Within 1.0 km</option>
+                                    <option value="2.5" selected>Within 2.5 km</option>
+                                    <option value="5">Within 5.0 km</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Deals Cards -->
+                    <div class="space-y-2.5 overflow-y-auto max-h-[330px] pr-1" id="dealsListContainer">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="tabContentFeed" class="space-y-5 hidden">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-fire text-discountCoral-400"></i>
+                        Curated Flash Steals & Verified Neighborhood Drops
+                    </h3>
+                    <p class="text-xs text-slate-400">Algorithmically curated discounts ranked by net percentage savings and community validity.</p>
+                </div>
+
+                <!-- Category Filtering Chips -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-mono" id="categoryChipsContainer">
+                    <button onclick="setCategoryFilter('all')" id="catChip_all" class="px-3 py-1 rounded-xl bg-dealEmerald-600 text-slate-950 font-bold transition">All Categories</button>
+                    <button onclick="setCategoryFilter('food')" id="catChip_food" class="px-3 py-1 rounded-xl bg-slateVelvet-850 text-slate-300 hover:text-white border border-slate-800 transition">🍔 Dining</button>
+                    <button onclick="setCategoryFilter('grocery')" id="catChip_grocery" class="px-3 py-1 rounded-xl bg-slateVelvet-850 text-slate-300 hover:text-white border border-slate-800 transition">🛒 Groceries</button>
+                    <button onclick="setCategoryFilter('tech')" id="catChip_tech" class="px-3 py-1 rounded-xl bg-slateVelvet-850 text-slate-300 hover:text-white border border-slate-800 transition">💻 Tech & Audio</button>
+                    <button onclick="setCategoryFilter('fashion')" id="catChip_fashion" class="px-3 py-1 rounded-xl bg-slateVelvet-850 text-slate-300 hover:text-white border border-slate-800 transition">👕 Fashion</button>
+                </div>
+            </div>
+
+            <!-- Dynamic Feed Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="curatedFeedGrid">
+                <!-- Injected dynamically via JS -->
+            </div>
+        </section>
+
+        <section id="tabContentWatchdog" class="space-y-5 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                
+                <!-- Left 8 Cols: 30-Day Historical Price Tracking Canvas Chart -->
+                <div class="lg:col-span-8 glass-card p-5 rounded-2xl space-y-4 border-t-2 border-t-flashAmber-500">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                    <i class="fa-solid fa-chart-line text-flashAmber-400"></i>
+                                    True-Discount Verifier & 30-Day Price History
+                                </h3>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-flashAmber-950 text-flashAmber-300 border border-flashAmber-800">
+                                    Anti-Markup Guard
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5" id="watchdogSelectedProductLabel">Tracking: Artisan Sourdough & Pastry Basket (Grand Central Bakery)</p>
+                        </div>
+
+                        <div class="flex items-center gap-2 text-xs font-mono">
+                            <span class="flex items-center gap-1 text-slate-400"><span class="w-3 h-0.5 bg-slate-500 inline-block border-dashed"></span> Retail Average</span>
+                            <span class="flex items-center gap-1 text-dealEmerald-400"><span class="w-3 h-0.5 bg-dealEmerald-400 inline-block"></span> DealSpotter True Deal</span>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Container -->
+                    <div class="relative w-full h-64 bg-slateVelvet-950/90 rounded-xl p-3 border border-slate-800/80 overflow-hidden">
+                        <canvas id="priceHistoryCanvas" class="w-full h-full block"></canvas>
+                        <div class="absolute top-3 right-3 text-[11px] font-mono bg-slateVelvet-900/80 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-300">
+                            Confidence Score: <strong class="text-dealEmerald-400">99.4% Verified Bargain</strong>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 text-xs font-mono pt-1">
+                        <div class="p-2.5 rounded-xl bg-slateVelvet-950 border border-slate-800">
+                            <span class="text-[10px] text-slate-400 block">LOWEST 30D PRICE</span>
+                            <span class="font-bold text-dealEmerald-400 text-sm" id="watchdogLowest">$14.00</span>
+                            <span class="text-[10px] text-slate-400 block">Current promo price</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slateVelvet-950 border border-slate-800">
+                            <span class="text-[10px] text-slate-400 block">STANDARD REGULAR</span>
+                            <span class="font-bold text-slate-200 text-sm" id="watchdogRegular">$35.00</span>
+                            <span class="text-[10px] text-slate-400 block">60% Genuine Savings</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slateVelvet-950 border border-slate-800">
+                            <span class="text-[10px] text-slate-400 block">PRICE MANIPULATION RISK</span>
+                            <span class="font-bold text-dealEmerald-400 text-sm" id="watchdogRisk">0% (Legit Drop)</span>
+                            <span class="text-[10px] text-slate-400 block">No artificial markup detected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right 4 Cols: Tracked Items Watchlist & Alert Trigger -->
+                <div class="lg:col-span-4 glass-card p-5 rounded-2xl space-y-4 border border-slate-800 flex flex-col justify-between">
+                    <div>
+                        <div class="border-b border-slate-800 pb-2">
+                            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-bell text-flashAmber-400"></i>
+                                Price Drop Watchlist
+                            </h4>
+                            <p class="text-[11px] text-slate-400 mt-1">Alert triggers when price drops below threshold.</p>
+                        </div>
+
+                        <!-- Watchlist Item Rows -->
+                        <div class="mt-4 space-y-3 text-xs" id="watchdogItemsList">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <button onclick="openSetAlertModal()" class="w-full py-2.5 bg-slateVelvet-800 hover:bg-slate-800 text-flashAmber-300 border border-flashAmber-500/30 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bell-plus"></i>
+                        <span>Track New Custom Product Drop</span>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="tabContentWallet" class="space-y-5 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                
+                <!-- Left 7 Cols: Active Claimed Coupons & In-Store Pass -->
+                <div class="lg:col-span-7 glass-card p-5 rounded-2xl space-y-4 border-t-2 border-t-cyberViolet-500">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-barcode text-cyberViolet-400"></i>
+                                Contactless In-Store Voucher & Barcode Pass
+                            </h3>
+                            <p class="text-xs text-slate-400">Show this dynamic 1D/2D code to the cashier at checkout for immediate instant discount.</p>
+                        </div>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyberViolet-950 text-cyberViolet-300 border border-cyberViolet-800">
+                            Ready to Scan
+                        </span>
+                    </div>
+
+                    <!-- Digital Pass Card -->
+                    <div class="p-5 rounded-2xl bg-gradient-to-br from-slateVelvet-900 to-slate-900 border border-cyberViolet-500/40 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
+                        <div class="space-y-3 text-xs font-mono">
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase tracking-wider block">COUPON VOUCHER ID</span>
+                                <span class="font-bold text-cyberViolet-400 text-sm" id="walletPassId">#DS-NY-2026-9912</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase tracking-wider block">MERCHANT & OFFER</span>
+                                <span class="font-bold text-white text-base" id="walletMerchantTitle">Kyoto Omakase Sushi • 40% Off Bento</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block">PROMO CODE</span>
+                                    <span class="text-slate-200 font-bold tracking-wider" id="walletPromoCode">BENTO40</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 block">EXPIRES IN</span>
+                                    <span class="text-discountCoral-400 font-bold" id="walletExpiresTime">01h 42m Remaining</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Generated Simulated Barcode / QR Code Canvas -->
+                        <div class="flex flex-col items-center justify-center p-3 bg-white rounded-xl shadow-lg flex-shrink-0">
+                            <canvas id="couponBarcodeCanvas" width="130" height="130" class="block"></canvas>
+                            <span class="text-[9px] font-mono text-slate-900 font-bold mt-1">SCAN AT CASHIER</span>
+                        </div>
+                    </div>
+
+                    <!-- Copy Promo Code Action -->
+                    <div class="p-3.5 rounded-xl bg-slateVelvet-950 border border-slate-800 flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-2 text-slate-300">
+                            <i class="fa-solid fa-globe text-dealEmerald-400 text-sm"></i>
+                            <span>Ordering online or via food delivery app?</span>
+                        </div>
+                        <button onclick="copyActivePromoCode()" class="px-3.5 py-1.5 bg-slateVelvet-850 hover:bg-slate-800 text-dealEmerald-400 border border-dealEmerald-500/30 rounded-xl font-semibold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-copy"></i>
+                            <span>Copy Code: BENTO40</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right 5 Cols: All Saved Coupons in Wallet -->
+                <div class="lg:col-span-5 glass-card p-5 rounded-2xl space-y-4 border border-slate-800">
+                    <div class="border-b border-slate-800 pb-2">
+                        <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-wallet text-cyberViolet-400"></i>
+                            My Saved Coupons (<span id="savedCouponsHeaderCount">2</span>)
+                        </h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Click any voucher to load its scanner barcode pass.</p>
+                    </div>
+
+                    <div class="space-y-3 text-xs" id="savedCouponsList">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="tabContentConcierge" class="space-y-5 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                
+                <!-- Left 8 Cols: AI Bargain Hunter Chat Stream -->
+                <div class="lg:col-span-8 glass-card p-5 rounded-2xl space-y-4 border-t-2 border-t-dealEmerald-500">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-robot text-dealEmerald-400"></i>
+                                DealSpotter Copilot — Senior Retail Bargain Strategist
+                            </h3>
+                            <p class="text-xs text-slate-400">Trained on local retail price elasticity, student/senior discounts, coupon stacking, and seasonal clearance cycles.</p>
+                        </div>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-dealEmerald-950 text-dealEmerald-300 border border-dealEmerald-800">
+                            Gemini 3 Flash
+                        </span>
+                    </div>
+
+                    <!-- Chat Message Stream -->
+                    <div class="h-64 overflow-y-auto space-y-3 pr-2 text-xs" id="chatMessageHistory">
+                        <div class="p-3.5 rounded-xl bg-slateVelvet-950 border border-slate-800 space-y-1.5">
+                            <div class="flex items-center gap-2 text-dealEmerald-400 font-bold">
+                                <i class="fa-solid fa-brain"></i>
+                                <span>DealSpotter Bargain Intelligence Core</span>
+                            </div>
+                            <p class="text-slate-300 leading-relaxed text-[11px]">
+                                Hyperlocal scanner online. I am actively tracking 38 verified retailer and restaurant promotions within 2.5 km of your location. Tell me what you're shopping for today (e.g. dinner for 2 under $35, half-price groceries, or noise-canceling headphones), and I'll find the best stacking deal!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Prompt Shortcut Chips -->
+                    <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                        <button onclick="sendQuickAiQuery('What are the best happy hour dining or sushi deals within walking distance right now?')" class="px-2.5 py-1 rounded-lg bg-slateVelvet-850 hover:bg-slate-800 border border-slate-800 text-slate-300 whitespace-nowrap">
+                            🍣 Nearby Happy Hour Sushi
+                        </button>
+                        <button onclick="sendQuickAiQuery('Which local supermarket has the highest discounts on organic produce and dairy this weekend?')" class="px-2.5 py-1 rounded-lg bg-slateVelvet-850 hover:bg-slate-800 border border-slate-800 text-slate-300 whitespace-nowrap">
+                            🛒 Supermarket Grocery Steals
+                        </button>
+                        <button onclick="sendQuickAiQuery('How can I stack retailer coupons and student/senior perks to maximize clearance savings?')" class="px-2.5 py-1 rounded-lg bg-slateVelvet-850 hover:bg-slate-800 border border-slate-800 text-slate-300 whitespace-nowrap">
+                            💡 Coupon Stacking Strategies
+                        </button>
+                    </div>
+
+                    <!-- Input Bar -->
+                    <div class="flex gap-2">
+                        <input type="text" id="aiQueryInput" placeholder="Ask for discount codes, price-matching advice, or cheap meal deals..." class="flex-1 bg-slateVelvet-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-dealEmerald-500">
+                        <button onclick="submitAiBargainQuery()" id="btnSubmitAiQuery" class="px-4 py-2.5 bg-gradient-to-r from-dealEmerald-600 to-flashAmber-500 hover:from-dealEmerald-500 hover:to-flashAmber-400 text-slate-950 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Find Deals</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right 4 Cols: Urban Smart Shopping Hacks -->
+                <div class="lg:col-span-4 glass-card p-5 rounded-2xl space-y-4">
+                    <div class="border-b border-slate-800 pb-2">
+                        <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Smart Shopping Rules</h4>
+                        <p class="text-[11px] text-slate-400">Algorithmic best practices for maximum savings.</p>
+                    </div>
+
+                    <div class="space-y-3 text-xs" id="shoppingHacksList">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <div id="spotDealModal" class="fixed inset-0 z-50 bg-slateVelvet-950/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card bg-slateVelvet-900 border border-dealEmerald-500/40 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-camera text-dealEmerald-400"></i>
+                    <span>Spot & Share a Local Deal</span>
+                </h4>
+                <button onclick="closeSpotDealModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-300 mb-1 font-semibold">Store / Merchant Name *</label>
+                    <input type="text" id="modalStoreName" placeholder="e.g. GreenBoutique Organic Grocer" class="w-full bg-slateVelvet-950 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-dealEmerald-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-semibold">Category</label>
+                        <select id="modalCategory" class="w-full bg-slateVelvet-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-dealEmerald-500">
+                            <option value="food">🍔 Food & Dining</option>
+                            <option value="grocery" selected>🛒 Groceries</option>
+                            <option value="tech">💻 Tech & Audio</option>
+                            <option value="fashion">👕 Apparel</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-semibold">Discount %</label>
+                        <input type="number" id="modalDiscountPct" value="45" min="5" max="95" class="w-full bg-slateVelvet-950 border border-slate-700 rounded-xl p-2.5 text-slate-100 font-mono focus:outline-none focus:border-dealEmerald-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1 font-semibold">Offer Title & Details *</label>
+                    <input type="text" id="modalOfferTitle" placeholder="e.g. Buy 1 Get 1 Free on all fresh sourdough loaves" class="w-full bg-slateVelvet-950 border border-slate-700 rounded-xl p-2.5 text-slate-100 focus:outline-none focus:border-dealEmerald-500">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1 font-semibold">Expiry Window</label>
+                    <select id="modalExpiry" class="w-full bg-slateVelvet-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-dealEmerald-500 font-mono">
+                        <option value="Ends in 2 Hours (Flash Drop)">Ends in 2 Hours (Flash Drop)</option>
+                        <option value="Today until 9 PM" selected>Today until 9 PM</option>
+                        <option value="Valid All Weekend">Valid All Weekend</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button onclick="closeSpotDealModal()" class="px-3.5 py-2 rounded-xl text-slate-400 hover:text-white text-xs">Cancel</button>
+                <button onclick="submitSpottedDeal()" class="px-4 py-2 bg-dealEmerald-500 hover:bg-dealEmerald-400 text-slate-950 font-bold rounded-xl text-xs transition">Publish to Local Radar (+50 Pts)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dealToast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 max-w-sm bg-slateVelvet-900 border border-slate-700 p-3.5 rounded-xl shadow-2xl flex items-center gap-3">
+        <div id="toastIconContainer" class="w-8 h-8 rounded-lg bg-dealEmerald-500/20 text-dealEmerald-400 flex items-center justify-center text-base flex-shrink-0">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <div class="flex-1 text-xs">
+            <div id="toastTitleText" class="font-bold text-slate-100">DealSpotter Alert</div>
+            <div id="toastDetailText" class="text-slate-400 text-[11px]">Hyperlocal discount updated</div>
+        </div>
+        <button onclick="hideDealToast()" class="text-slate-500 hover:text-slate-300">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <script>
+        // Web Audio Synthesizer for high-fidelity acoustic feedback
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playChime(type = 'success') {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.16); // A5
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                } else if (type === 'flash') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime); // E5
+                    osc.frequency.setValueAtTime(987.77, audioCtx.currentTime + 0.12); // B5
+                    gain.gain.setValueAtTime(0.16, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                } else if (type === 'claim') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+                    osc.frequency.exponentialRampToValueAtTime(659.25, audioCtx.currentTime + 0.14); // E5
+                    gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                }
+            } catch (e) {
+                console.warn('Audio fallback:', e);
+            }
+        }
+
+        // Central Application State
+        const state = {
+            activeTab: 'map',
+            map: null,
+            markersGroup: null,
+            activeCategory: 'all',
+            deals: [
+                {
+                    id: 'deal_1',
+                    merchant: 'Kyoto Omakase Sushi',
+                    category: 'food',
+                    title: '40% Off Deluxe Nigiri & Bento Lunch Box',
+                    discountPct: 40,
+                    regularPrice: 42.00,
+                    dealPrice: 25.20,
+                    lat: 40.7138,
+                    lng: -74.0072,
+                    distanceKm: 0.3,
+                    expires: 'Ends in 1h 42m',
+                    promoCode: 'BENTO40',
+                    isFlash: true,
+                    upvotes: 84,
+                    icon: 'fa-utensils',
+                    tag: 'Flash Lunch Deal'
+                },
+                {
+                    id: 'deal_2',
+                    merchant: 'Grand Central Bakery & Cafe',
+                    category: 'food',
+                    title: '60% Off Evening Artisan Pastry & Sourdough Pack',
+                    discountPct: 60,
+                    regularPrice: 35.00,
+                    dealPrice: 14.00,
+                    lat: 40.7118,
+                    lng: -74.0042,
+                    distanceKm: 0.5,
+                    expires: 'Ends in 48m',
+                    promoCode: 'BAKE60',
+                    isFlash: true,
+                    upvotes: 126,
+                    icon: 'fa-bread-slice',
+                    tag: 'Zero-Waste Flash Drop'
+                },
+                {
+                    id: 'deal_3',
+                    merchant: 'GreenBoutique Organic Grocer',
+                    category: 'grocery',
+                    title: 'Buy 1 Get 1 Free on Hydroponic Produce & Greek Yogurts',
+                    discountPct: 50,
+                    regularPrice: 28.00,
+                    dealPrice: 14.00,
+                    lat: 40.7155,
+                    lng: -74.0088,
+                    distanceKm: 0.8,
+                    expires: 'Valid Today until 9 PM',
+                    promoCode: 'ORGANICBOGO',
+                    isFlash: false,
+                    upvotes: 62,
+                    icon: 'fa-basket-shopping',
+                    tag: 'Supermarket Steal'
+                },
+                {
+                    id: 'deal_4',
+                    merchant: 'SoundWave Hi-Fi Audio Lounge',
+                    category: 'tech',
+                    title: '$80 Off ANC Wireless Studio Headphones',
+                    discountPct: 35,
+                    regularPrice: 229.00,
+                    dealPrice: 149.00,
+                    lat: 40.7102,
+                    lng: -74.0025,
+                    distanceKm: 1.1,
+                    expires: 'All Weekend Clearance',
+                    promoCode: 'AUDIO80',
+                    isFlash: false,
+                    upvotes: 49,
+                    icon: 'fa-headphones',
+                    tag: 'Tech Clearance'
+                },
+                {
+                    id: 'deal_5',
+                    merchant: 'SOHO Streetwear Threads',
+                    category: 'fashion',
+                    title: '50% Off Japanese Selvedge Denim & Heavyweight Tees',
+                    discountPct: 50,
+                    regularPrice: 120.00,
+                    dealPrice: 60.00,
+                    lat: 40.7162,
+                    lng: -74.0035,
+                    distanceKm: 1.4,
+                    expires: 'Ends in 3 Hours',
+                    promoCode: 'DENIM50',
+                    isFlash: true,
+                    upvotes: 93,
+                    icon: 'fa-shirt',
+                    tag: 'Flash Apparel'
+                }
+            ],
+            savedCoupons: [
+                {
+                    id: 'cpn_1',
+                    voucherId: 'DS-NY-2026-9912',
+                    merchant: 'Kyoto Omakase Sushi',
+                    title: '40% Off Deluxe Nigiri & Bento',
+                    promoCode: 'BENTO40',
+                    expires: '01h 42m Remaining',
+                    savingsVal: '$16.80 Saved'
+                },
+                {
+                    id: 'cpn_2',
+                    voucherId: 'DS-NY-2026-8841',
+                    merchant: 'GreenBoutique Organic Grocer',
+                    title: 'BOGO Free Hydroponic Produce',
+                    promoCode: 'ORGANICBOGO',
+                    expires: 'Today until 9 PM',
+                    savingsVal: '$14.00 Saved'
+                }
+            ],
+            watchdogProduct: {
+                name: 'Artisan Sourdough & Pastry Basket (Grand Central Bakery)',
+                regular: 35.00,
+                deal: 14.00,
+                history: [35, 35, 34, 35, 36, 35, 32, 35, 35, 34, 28, 35, 35, 35, 14]
+            },
+            shoppingHacks: [
+                { title: 'The 6:30 PM Bakery Window', rule: 'Bakeries and gourmet delis drop fresh baked loaves and sushi boxes by 50–70% after 6:30 PM to clear daily inventory.' },
+                { title: 'Student & Senior Stacking', rule: 'Show a valid college or senior ID at local indie cafes on Tuesdays to receive an extra 10% stack on top of promo codes.' },
+                { title: 'False Markup Protection', rule: 'DealSpotter automatically checks whether a 50% discount was preceded by an artificial price inflation in the prior 14 days.' }
+            ]
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initLeafletMap();
+            renderDealsList();
+            renderCuratedFeed();
+            renderWatchdogItems();
+            renderSavedCouponsList();
+            renderShoppingHacks();
+            drawPriceHistoryCanvas();
+            renderCouponBarcode();
+
+            // AI chat Enter key trigger
+            document.getElementById('aiQueryInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitAiBargainQuery();
+            });
+        });
+
+        function switchTab(tabId) {
+            state.activeTab = tabId;
+            const tabs = ['map', 'feed', 'watchdog', 'wallet', 'concierge'];
+            
+            tabs.forEach(t => {
+                const el = document.getElementById(`tabContent${capitalize(t)}`);
+                const btn = document.getElementById(`tabBtn${capitalize(t)}`);
+                if (t === tabId) {
+                    el.classList.remove('hidden');
+                    btn.className = "px-3.5 py-2 rounded-lg bg-dealEmerald-600 text-slate-950 font-bold transition flex items-center gap-2 shadow";
+                } else {
+                    el.classList.add('hidden');
+                    btn.className = "px-3.5 py-2 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-2";
+                }
+            });
+
+            if (tabId === 'map' && state.map) {
+                setTimeout(() => state.map.invalidateSize(), 120);
+            } else if (tabId === 'watchdog') {
+                setTimeout(() => drawPriceHistoryCanvas(), 100);
+            }
+        }
+
+        function capitalize(s) {
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+
+        function initLeafletMap() {
+            if (state.map) return;
+
+            state.map = L.map('dealLeafletMap', {
+                zoomControl: true,
+                attributionControl: false
+            }).setView([40.7135, -74.0055], 15);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19,
+                subdomains: 'abcd',
+            }).addTo(state.map);
+
+            state.markersGroup = L.layerGroup().addTo(state.map);
+            plotDealMarkers();
+        }
+
+        function plotDealMarkers() {
+            state.markersGroup.clearLayers();
+
+            state.deals.forEach(deal => {
+                let badgeClass = 'border-dealEmerald-400 text-dealEmerald-400';
+                if (deal.discountPct >= 60 || deal.isFlash) {
+                    badgeClass = 'border-discountCoral-500 text-discountCoral-400 flash-pulse';
+                } else if (deal.discountPct >= 40) {
+                    badgeClass = 'border-flashAmber-400 text-flashAmber-400';
+                }
+
+                const iconHtml = `
+                    <div class="px-2.5 py-1 rounded-xl bg-slateVelvet-900 border-2 ${badgeClass} font-bold font-mono text-[10px] shadow-2xl flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="fa-solid ${deal.icon}"></i>
+                        <span>${deal.merchant.split(' ')[0]} • -${deal.discountPct}%</span>
+                    </div>
+                `;
+
+                const markerIcon = L.divIcon({
+                    html: iconHtml,
+                    className: 'custom-deal-marker',
+                    iconSize: [120, 28],
+                    iconAnchor: [60, 14]
+                });
+
+                const m = L.marker([deal.lat, deal.lng], { icon: markerIcon }).addTo(state.markersGroup);
+                m.bindPopup(`
+                    <div class="p-1.5 space-y-1.5 text-xs font-sans">
+                        <div class="font-bold text-white text-sm">${deal.merchant}</div>
+                        <div class="text-[11px] text-slate-300 font-semibold">${deal.title}</div>
+                        <div class="flex items-center justify-between text-[11px] font-mono pt-1 border-t border-slate-800">
+                            <span class="text-slate-400">Promo Price:</span>
+                            <span class="font-bold text-dealEmerald-400 text-sm">$${deal.dealPrice.toFixed(2)} <span class="line-through text-slate-500 text-xs">$${deal.regularPrice.toFixed(2)}</span></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] font-mono text-discountCoral-400">
+                            <span><i class="fa-regular fa-clock mr-1"></i>${deal.expires}</span>
+                            <span>Code: <strong>${deal.promoCode}</strong></span>
+                        </div>
+                        <button onclick="claimDealToWallet('${deal.id}')" class="mt-2 w-full py-1.5 bg-dealEmerald-600 hover:bg-dealEmerald-500 text-slate-950 font-bold rounded-lg text-xs font-mono transition">
+                            Claim Voucher to Wallet
+                        </button>
+                    </div>
+                `);
+            });
+        }
+
+        function renderDealsList() {
+            const container = document.getElementById('dealsListContainer');
+            container.innerHTML = '';
+
+            const search = (document.getElementById('dealSearchInput')?.value || '').toLowerCase();
+            const maxDist = parseFloat(document.getElementById('distanceFilterSelect')?.value || 2.5);
+
+            const filtered = state.deals.filter(d => {
+                const matchSearch = d.merchant.toLowerCase().includes(search) || d.title.toLowerCase().includes(search);
+                const matchDist = d.distanceKm <= maxDist;
+                return matchSearch && matchDist;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-slate-500 text-xs">No discounts found matching this filter. Try widening distance.</div>`;
+                return;
+            }
+
+            filtered.forEach(d => {
+                const card = document.createElement('div');
+                card.className = "p-3 rounded-xl bg-slateVelvet-950 border border-slate-800 hover:border-dealEmerald-500/50 transition cursor-pointer space-y-1.5";
+                card.onclick = () => {
+                    if (state.map) {
+                        state.map.flyTo([d.lat, d.lng], 16, { duration: 1.2 });
+                    }
+                    showDealToast(`Inspecting ${d.merchant}`, 'fa-crosshairs');
+                };
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-200 text-xs truncate max-w-[190px]">${d.merchant}</span>
+                        <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full ${d.isFlash ? 'bg-discountCoral-950 text-discountCoral-300 border border-discountCoral-800' : 'bg-dealEmerald-950 text-dealEmerald-300 border border-dealEmerald-800'}">
+                            -${d.discountPct}% OFF
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-300 line-clamp-1">${d.title}</p>
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-0.5 border-t border-slate-900">
+                        <span><i class="fa-solid fa-person-walking mr-1 text-dealEmerald-400"></i>${d.distanceKm} km away</span>
+                        <span class="text-dealEmerald-400 font-bold">$${d.dealPrice.toFixed(2)}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filterDealsList() {
+            renderDealsList();
+        }
+
+        function refreshRadarTelemetry() {
+            plotDealMarkers();
+            renderDealsList();
+            playChime('success');
+            showDealToast("Proximity radar refreshed: 38 deals re-verified", "fa-satellite-dish");
+        }
+
+        function renderCuratedFeed() {
+            const container = document.getElementById('curatedFeedGrid');
+            container.innerHTML = '';
+
+            const filtered = state.activeCategory === 'all'
+                ? state.deals
+                : state.deals.filter(d => d.category === state.activeCategory);
+
+            filtered.forEach(d => {
+                const card = document.createElement('div');
+                card.className = "glass-card p-4 rounded-2xl flex flex-col justify-between space-y-3 hover:border-dealEmerald-500/50 transition relative overflow-hidden";
+                
+                card.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="flex items-start justify-between gap-2">
+                            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slateVelvet-900 text-slate-300 border border-slate-800">
+                                <i class="fa-solid ${d.icon} mr-1 text-dealEmerald-400"></i>${d.tag}
+                            </span>
+                            <span class="text-xs font-mono font-bold text-discountCoral-400 flex items-center gap-1">
+                                <i class="fa-solid fa-clock"></i> ${d.expires}
+                            </span>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-slate-100 text-sm leading-snug">${d.title}</h4>
+                            <p class="text-xs text-slate-400 mt-0.5">${d.merchant} • ${d.distanceKm} km away</p>
+                        </div>
+
+                        <div class="p-2.5 rounded-xl bg-slateVelvet-950 border border-slate-800 flex items-center justify-between font-mono text-xs">
+                            <div>
+                                <span class="text-[10px] text-slate-500 block">DEAL PRICE</span>
+                                <span class="text-lg font-bold text-dealEmerald-400">$${d.dealPrice.toFixed(2)}</span>
+                                <span class="line-through text-slate-500 text-xs ml-1">$${d.regularPrice.toFixed(2)}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-500 block">PROMO CODE</span>
+                                <span class="text-slate-200 font-bold bg-slateVelvet-900 px-2 py-0.5 rounded border border-slate-700">${d.promoCode}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                        <button onclick="upvoteDeal('${d.id}')" class="px-2.5 py-1 rounded-lg bg-slateVelvet-950 hover:bg-slate-800 border border-slate-800 text-slate-300 font-mono flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-arrow-up text-dealEmerald-400"></i>
+                            <span>${d.upvotes}</span>
+                        </button>
+                        <button onclick="claimDealToWallet('${d.id}')" class="px-3.5 py-1.5 bg-dealEmerald-600 hover:bg-dealEmerald-500 text-slate-950 font-bold rounded-xl transition shadow flex items-center gap-1.5">
+                            <i class="fa-solid fa-wallet"></i>
+                            <span>Claim Voucher</span>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function setCategoryFilter(cat) {
+            state.activeCategory = cat;
+            const categories = ['all', 'food', 'grocery', 'tech', 'fashion'];
+            categories.forEach(c => {
+                const btn = document.getElementById(`catChip_${c}`);
+                if (c === cat) {
+                    btn.className = "px-3 py-1 rounded-xl bg-dealEmerald-600 text-slate-950 font-bold transition";
+                } else {
+                    btn.className = "px-3 py-1 rounded-xl bg-slateVelvet-850 text-slate-300 hover:text-white border border-slate-800 transition";
+                }
+            });
+            renderCuratedFeed();
+        }
+
+        function upvoteDeal(dealId) {
+            const deal = state.deals.find(d => d.id === dealId);
+            if (!deal) return;
+            deal.upvotes += 1;
+            renderCuratedFeed();
+            playChime('success');
+            showDealToast(`Upvoted deal at ${deal.merchant}!`, 'fa-arrow-up');
+        }
+
+        function drawPriceHistoryCanvas() {
+            const canvas = document.getElementById('priceHistoryCanvas');
+            if (!canvas) return;
+
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            const w = rect.width;
+            const h = rect.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Grid background
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < w; x += 45) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+            for (let y = 0; y < h; y += 35) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+
+            const data = state.watchdogProduct.history;
+            const maxPrice = 40;
+            const minPrice = 10;
+
+            // Draw historical price polyline
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+
+            for (let i = 0; i < data.length; i++) {
+                const x = (i / (data.length - 1)) * (w - 40) + 20;
+                const y = h - ((data[i] - minPrice) / (maxPrice - minPrice)) * (h - 40) - 20;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Gradient Area Under Curve
+            ctx.lineTo((w - 40) + 20, h - 20);
+            ctx.lineTo(20, h - 20);
+            ctx.closePath();
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+            grad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Draw drop callout dot
+            const lastIdx = data.length - 1;
+            const lastX = (lastIdx / (data.length - 1)) * (w - 40) + 20;
+            const lastY = h - ((data[lastIdx] - minPrice) / (maxPrice - minPrice)) * (h - 40) - 20;
+
+            ctx.fillStyle = '#f43f5e';
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function renderWatchdogItems() {
+            const container = document.getElementById('watchdogItemsList');
+            container.innerHTML = '';
+
+            const items = [
+                { name: 'Artisan Sourdough & Pastry Basket', store: 'Grand Central Bakery', target: '$16.00', current: '$14.00 (Drop Detected)', active: true },
+                { name: 'Sony WH-1000XM5 Studio Headphones', store: 'SoundWave Hi-Fi', target: '$150.00', current: '$149.00 (Target Met)', active: true },
+                { name: 'Organic Cold-Pressed Olive Oil 1L', store: 'GreenBoutique Grocer', target: '$12.00', current: '$18.50 (Watching)', active: false }
+            ];
+
+            items.forEach(it => {
+                const row = document.createElement('div');
+                row.className = "p-3 rounded-xl bg-slateVelvet-950 border border-slate-800 space-y-1 font-mono text-xs";
+                row.innerHTML = `
+                    <div class="flex justify-between items-center text-slate-200">
+                        <span class="font-bold truncate max-w-[200px]">${it.name}</span>
+                        <span class="${it.active ? 'text-dealEmerald-400' : 'text-slate-400'} font-bold">${it.current}</span>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>Store: ${it.store}</span>
+                        <span>Target: ${it.target}</span>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function renderCouponBarcode() {
+            const canvas = document.getElementById('couponBarcodeCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw crisp 2D QR finder squares
+            ctx.fillStyle = '#050914';
+            ctx.fillRect(10, 10, 30, 30);
+            ctx.clearRect(15, 15, 20, 20);
+            ctx.fillRect(20, 20, 10, 10);
+
+            ctx.fillRect(w - 40, 10, 30, 30);
+            ctx.clearRect(w - 35, 15, 20, 20);
+            ctx.fillRect(w - 30, 20, 10, 10);
+
+            ctx.fillRect(10, h - 40, 30, 30);
+            ctx.clearRect(15, h - 35, 20, 20);
+            ctx.fillRect(20, h - 30, 10, 10);
+
+            // Fill with dynamic barcode pattern matrix
+            for (let i = 0; i < 75; i++) {
+                const rx = 10 + Math.floor(Math.random() * (w - 20) / 6) * 6;
+                const ry = 10 + Math.floor(Math.random() * (h - 20) / 6) * 6;
+                ctx.fillRect(rx, ry, 5, 5);
+            }
+        }
+
+        function renderSavedCouponsList() {
+            const container = document.getElementById('savedCouponsList');
+            container.innerHTML = '';
+
+            state.savedCoupons.forEach(cpn => {
+                const item = document.createElement('div');
+                item.className = "p-3.5 rounded-xl bg-slateVelvet-950 border border-slate-800 hover:border-cyberViolet-500/40 transition cursor-pointer space-y-1.5";
+                item.onclick = () => {
+                    document.getElementById('walletPassId').textContent = `#${cpn.voucherId}`;
+                    document.getElementById('walletMerchantTitle').textContent = `${cpn.merchant} • ${cpn.title}`;
+                    document.getElementById('walletPromoCode').textContent = cpn.promoCode;
+                    document.getElementById('walletExpiresTime').textContent = cpn.expires;
+                    renderCouponBarcode();
+                    playChime('claim');
+                    showDealToast(`Loaded voucher pass for ${cpn.merchant}`, 'fa-qrcode');
+                };
+
+                item.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-100 text-xs">${cpn.merchant}</span>
+                        <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-dealEmerald-950 text-dealEmerald-300 border border-dealEmerald-800">${cpn.savingsVal}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300">${cpn.title}</p>
+                    <div class="flex justify-between items-center text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-900">
+                        <span>Code: <strong class="text-white">${cpn.promoCode}</strong></span>
+                        <span class="text-discountCoral-400">${cpn.expires}</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function claimDealToWallet(dealId) {
+            const deal = state.deals.find(d => d.id === dealId);
+            if (!deal) return;
+
+            const newVoucher = {
+                id: 'cpn_' + Date.now(),
+                voucherId: `DS-NY-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+                merchant: deal.merchant,
+                title: deal.title,
+                promoCode: deal.promoCode,
+                expires: deal.expires,
+                savingsVal: `$${(deal.regularPrice - deal.dealPrice).toFixed(2)} Saved`
+            };
+
+            state.savedCoupons.unshift(newVoucher);
+            document.getElementById('walletTabCount').textContent = state.savedCoupons.length;
+            document.getElementById('savedCouponsHeaderCount').textContent = state.savedCoupons.length;
+            renderSavedCouponsList();
+
+            switchTab('wallet');
+            playChime('claim');
+            showDealToast(`Claimed ${deal.title} to Wallet!`, 'fa-circle-check');
+        }
+
+        function copyActivePromoCode() {
+            const code = document.getElementById('walletPromoCode').textContent.trim();
+            const dummy = document.createElement('textarea');
+            dummy.value = code;
+            document.body.appendChild(dummy);
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+
+            playChime('success');
+            showDealToast(`Copied promo code "${code}" to clipboard!`, 'fa-clipboard-check');
+        }
+
+        function renderShoppingHacks() {
+            const container = document.getElementById('shoppingHacksList');
+            container.innerHTML = '';
+
+            state.shoppingHacks.forEach(h => {
+                const card = document.createElement('div');
+                card.className = "p-2.5 rounded-xl bg-slateVelvet-950 border border-slate-800 space-y-1 text-xs";
+                card.innerHTML = `
+                    <span class="font-bold text-dealEmerald-300 block">${h.title}</span>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">${h.rule}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function submitAiBargainQuery() {
+            const input = document.getElementById('aiQueryInput');
+            const query = input.value.trim();
+            if (!query) return;
+
+            input.value = '';
+            appendAiChatMessage('user', query);
+
+            const btn = document.getElementById('btnSubmitAiQuery');
+            btn.disabled = true;
+
+            const chatHistory = document.getElementById('chatMessageHistory');
+            const thinking = document.createElement('div');
+            thinking.id = 'aiThinkingIndicator';
+            thinking.className = "p-3 rounded-xl bg-slateVelvet-950 border border-slate-800 text-slate-400 text-xs italic flex items-center gap-2";
+            thinking.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-dealEmerald-400"></i> Scanning 38 nearby merchants, price elasticities & coupon stacking codes...`;
+            chatHistory.appendChild(thinking);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            const systemPrompt = `You are DealSpotter Copilot, an elite AI Hyperlocal Bargain Hunter & Retail Savings Strategist.
+Help urban shoppers locate maximum discounts, compare restaurant happy hours, stack promo codes with loyalty perks, and detect false markups.
+Provide ultra-concise, pragmatic advice in 2 punchy paragraphs with zero fluff. Always quote realistic dollar savings.`;
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: query }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                };
+
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                const aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                removeThinkingIndicator();
+                if (aiReply) {
+                    appendAiChatMessage('assistant', aiReply);
+                    playChime('success');
+                } else {
+                    throw new Error("Empty AI response");
+                }
+            } catch (err) {
+                removeThinkingIndicator();
+                console.warn("Using offline bargain heuristics:", err);
+                const heuristic = generateHeuristicBargainAdvice(query);
+                appendAiChatMessage('assistant', heuristic);
+                playChime('success');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function generateHeuristicBargainAdvice(query) {
+            const lower = query.toLowerCase();
+            if (lower.includes('sushi') || lower.includes('dinner') || lower.includes('food')) {
+                return `**Top Nearby Dining Deal Pick:**\nHead over to **Kyoto Omakase Sushi** (0.3 km away). They currently have a verified **40% Flash Bento Deal** using promo code **BENTO40**, dropping dinner costs from $42.00 down to $25.20. Pair this with their complimentary green tea service for maximum savings.`;
+            } else if (lower.includes('grocery') || lower.includes('produce') || lower.includes('supermarket')) {
+                return `**Supermarket Savings Strategy:**\n**GreenBoutique Organic Grocer** (0.8 km) has a **BOGO Free** offer on all hydroponic greens and Greek yogurt through 9 PM. If shopping post-6:30 PM, stop by Grand Central Bakery across the corner where sourdough loaves are marked down 60% ($14.00 vs $35.00 regular).`;
+            } else {
+                return `**Neighborhood Coupon Stacking Hack:**\nAlways combine digital voucher codes with student or senior merchant hours. Stacking code **AUDIO80** at SoundWave Hi-Fi with in-store student verification brings ANC Studio Headphones from $229.00 down to $134.00—an authentic 41% net price cut verified against 30-day historical retail pricing.`;
+            }
+        }
+
+        function sendQuickAiQuery(text) {
+            document.getElementById('aiQueryInput').value = text;
+            submitAiBargainQuery();
+        }
+
+        function appendAiChatMessage(sender, text) {
+            const chatHistory = document.getElementById('chatMessageHistory');
+            const bubble = document.createElement('div');
+
+            if (sender === 'user') {
+                bubble.className = "p-3 rounded-xl bg-slateVelvet-850 border border-slate-700 text-slate-100 text-xs ml-4 text-right";
+                bubble.innerHTML = `<span class="text-dealEmerald-400 font-bold block text-[10px] mb-0.5">Shopper</span>${text}`;
+            } else {
+                bubble.className = "p-3.5 rounded-xl bg-slateVelvet-950 border border-slate-800 text-slate-300 text-xs mr-2 leading-relaxed space-y-1";
+                bubble.innerHTML = `
+                    <div class="flex items-center gap-1.5 text-dealEmerald-400 font-bold text-[10px]">
+                        <i class="fa-solid fa-brain"></i>
+                        <span>DealSpotter Bargain Intelligence Core</span>
+                    </div>
+                    <p class="text-[11px] leading-relaxed text-slate-300">${text.replace(/\n/g, '<br>')}</p>
+                `;
+            }
+            chatHistory.appendChild(bubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function removeThinkingIndicator() {
+            const el = document.getElementById('aiThinkingIndicator');
+            if (el) el.remove();
+        }
+
+        function triggerFlashDropSimulation() {
+            const flashDeal = state.deals[1];
+            flashDeal.discountPct = 70;
+            flashDeal.dealPrice = 10.50;
+            flashDeal.expires = 'HURRY: Ends in 24m';
+
+            plotDealMarkers();
+            renderDealsList();
+            renderCuratedFeed();
+            playChime('flash');
+            showDealToast("MEGA FLASH DROP: 70% Off at Grand Central Bakery!", "fa-bolt");
+        }
+
+        function openSpotDealModal() {
+            document.getElementById('spotDealModal').classList.remove('hidden');
+        }
+
+        function closeSpotDealModal() {
+            document.getElementById('spotDealModal').classList.add('hidden');
+        }
+
+        function submitSpottedDeal() {
+            const store = document.getElementById('modalStoreName').value.trim() || 'Local Artisan Merchant';
+            const cat = document.getElementById('modalCategory').value;
+            const discount = parseInt(document.getElementById('modalDiscountPct').value) || 45;
+            const title = document.getElementById('modalOfferTitle').value.trim() || `${discount}% Off Seasonal Special`;
+            const expiry = document.getElementById('modalExpiry').value;
+
+            const newDeal = {
+                id: 'deal_' + Date.now(),
+                merchant: store,
+                category: cat,
+                title: title,
+                discountPct: discount,
+                regularPrice: 50.00,
+                dealPrice: 50.00 * (1 - discount / 100),
+                lat: 40.7142 + (Math.random() - 0.5) * 0.006,
+                lng: -74.0065 + (Math.random() - 0.5) * 0.006,
+                distanceKm: 0.6,
+                expires: expiry,
+                promoCode: `LOCAL${discount}`,
+                isFlash: discount >= 50,
+                upvotes: 1,
+                icon: cat === 'food' ? 'fa-utensils' : (cat === 'tech' ? 'fa-headphones' : 'fa-tag'),
+                tag: 'Community Spotted'
+            };
+
+            state.deals.unshift(newDeal);
+            plotDealMarkers();
+            renderDealsList();
+            renderCuratedFeed();
+            closeSpotDealModal();
+            playChime('success');
+            showDealToast(`Spotted deal at ${store} published! +50 Karma Pts`, 'fa-circle-check');
+        }
+
+        function openSetAlertModal() {
+            playChime('success');
+            showDealToast("Price Drop Watcher configured for notification", "fa-bell");
+        }
+
+        // Custom Toast Notifications
+        let toastTimer = null;
+        function showDealToast(title, icon = 'fa-check') {
+            const toast = document.getElementById('dealToast');
+            document.getElementById('toastTitleText').textContent = title;
+            document.getElementById('toastIconContainer').innerHTML = `<i class="fa-solid ${icon}"></i>`;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(hideDealToast, 4000);
+        }
+
+        function hideDealToast() {
+            const toast = document.getElementById('dealToast');
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-20', 'opacity-0');
+        }
+    </script>
+</body>
+</html>
